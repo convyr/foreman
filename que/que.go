@@ -2,6 +2,7 @@ package que
 
 import (
 	"flag"
+	"fmt"
 	"time"
 
 	nats "github.com/nats-io/go-nats"
@@ -33,20 +34,21 @@ func New(ch string) (*Que, error) {
 	return &q, err
 }
 
-func (q *Que) Watch() error {
+func (q *Que) Watch() (err error) {
 	go func() {
-		_, err := nc.QueueSubscribe(q.Channel, q.Group, func(m *nats.Msg) {
+		_, err = q.NatsClient.QueueSubscribe(q.Channel, q.Group, func(m *nats.Msg) {
 			// To belt
-			fmt.Prntln(string(m.Data))
+			fmt.Println(string(m.Data))
 			if m.Reply != "" {
 				//belt results to go here
-				nc.Publish(m.Reply, []byte("received"))
+				q.NatsClient.Publish(m.Reply, []byte("received"))
 			}
 		})
 		if err != nil {
-			return err
+			return
 		}
 	}()
+	return err
 }
 
 func (q *Que) Close() {
